@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<!-- Coy Humphrey (cmhumphr@ucsc.edu) -->
+<html>
+<head>
+  <title>HW4</title><meta charset="utf-8">
+  <style>
+  body,div { background-color: #eee; font-family: sans; padding: 1em; }
+  span.d6 { font-size: 400%;}
+  </style>
+</head>
+<body>
+  <form action="#">
+    <input type="text" id="from" /> 
+    <select id="fromUnit">
+      <option value="c">Celsius</option>
+      <option value="f">Fahrenheit</option>
+      <option value="k">Kelvin</option>
+    </select>
+    =
+    <input type="text" id="to" /> 
+    <select id="toUnit">
+      <option value="c">Celsius</option>
+      <option value="f">Fahrenheit</option>
+      <option value="k">Kelvin</option>
+    </select>
+  </form>
+  <div>
+  <button id="restart">Restart</button>
+  <p id="score">Score: _ (_ dice with _ dots each)</p>
+  <p id="rolls">_ rolls left</p>
+  <div id="dice"></div>
+</div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js">
+  </script>
+  <script>
+  toUnit = "c";
+  fromUnit = "c";
+  $("#from").keyup(fromUpdated);
+  $("#to").keyup(toUpdated);
+  function fromUpdated(){
+    var c = $("#from").val();
+    $("#to").val(convert(c, fromUnit, toUnit));
+  }
+  function toUpdated(){
+    var c = $("#to").val();
+    $("#from").val(convert(c, toUnit, fromUnit));
+  }
+
+  function convert (n, from, to){
+    var result = 0;
+    // First convert to celsius
+    // Subtracting from n makes result a number
+    if      (from === "c") {result = n - 0;}
+    else if (from === "f") {result = (n - 32) * 5 / 9;}
+    else if (from === "k") {result = n - 273;}
+    // Then convert from celsius to target unit
+    if      (to === "c") {result = result;}
+    else if (to === "f") {result = result * 9 / 5 + 32;}
+    else if (to === "k") {result = result + 273;}
+    return result;
+  }
+
+  $( "#toUnit" ).change(function() {
+    toUnit = $("#toUnit").val();
+    fromUpdated();
+  });
+  $( "#fromUnit" ).change(function() {
+    fromUnit = $("#fromUnit").val();
+    fromUpdated();
+  });
+
+  function randInt (min, max){
+    return min + Math.floor (Math.random() * (max - min + 1));
+  }
+  function createDice (n){
+    return function (){
+      return randInt (1, n);
+    };
+  }
+
+  function Dice(){
+    // creates a new instance
+    // should assign the "this.el" property to be a jQuery-wrapped
+    // <span> HTML element with the CSS class "d6" using one of the
+    // icons as inner text.
+    this.id = "dice" + this.getID();
+    this.i = this.d() - 1;
+    this.el = $ ("<span>", {
+      html: this.icons[this.i],
+      'class': 'd6',
+      id: this.id
+    });
+    // Set do to this
+    var d = this;
+    // On click, call d.roll();
+    this.el.click (function () {
+      d.roll();
+    });
+  }
+  
+  // Store these in the prototype for efficiency
+  Dice.prototype.d = createDice (6);
+  Dice.prototype.icons = "⚀⚁⚂⚃⚄⚅";
+
+  // To get a unique ID, create a function closure
+  Dice.prototype.getID = (function() {
+    // Store nextID within closure
+    var nextID = 0;
+    // Return a function that returns current ID, then increments it
+    return function() {return nextID++;};
+  })(); // Call the created closure function and store inner function in getID.
+
+  // Updates this.el and updates the display
+  Dice.prototype.render = function() {
+    // updates the HTML represenation by changing the icon in the
+    // jQuery-wrapped element in the "this.el" property
+    this.el = $ ("<span>", {
+      html: this.icons[this.i],
+      'class': 'd6',
+      id: this.id
+    });
+    var d = this;
+    this.el.click (function () {
+      d.roll();
+    })
+    //Select the element with this dice's ID and replace its HTML.
+    $ ("#" + this.id).replaceWith(this.el);
+  }
+  // Updates the contents of the dice and updates display
+  Dice.prototype.roll = function() {
+    this.i = (this.d() - 1);
+    this.render();
+  }
+
+  // Inherits from Dice. Changes the d method.
+  function UnfairDice() {
+    Dice.call(this);
+  }
+  UnfairDice.prototype = new Dice();
+  UnfairDice.prototype.d = function() {
+    if (Math.random() < .5) return 6;
+    else return randInt (1,5);
+  }
+
+  // Yahtzy Code begins here-----------------------------------
+  // Run once document is ready
+  $ (YahtzyInit);
+  // Run when restart button is clicked
+  $ ("#restart").click (YahtzyInit);
+
+  // Global variables for Yahtzy game
+  rollsLeft = 5;
+  diceList = [];
+  
+
+  // Yahtzy Dice
+  // Same as normal dice, but checks rollsLeft variable before
+  // rolling. If rollsLeft <= 0 roll does nothing.
+  function YahtzyDice() {
+    Dice.call (this);
+  }
+  YahtzyDice.prototype = new Dice();
+  YahtzyDice.prototype.roll = function() {
+    if (rollsLeft <= 0) return;
+    else {
+      rollsLeft--;
+      this.i = (this.d() - 1);
+      this.render();
+      YahtzyUpdate();
+    }
+  }
+
+  // Initializes or resets all Yahtzy stuff. Called when document
+  // is ready and when restart is clicked.
+  function YahtzyInit() {
+    rollsLeft = 5;
+    // Clear any existing dice from #dice
+    $ ("#dice").html ("");
+    // Fill diceList and append each new die to #dice
+    for (var i = 0; i < 5; i++) {
+      diceList[i] = new YahtzyDice();
+      $ ("#dice").append (diceList[i].el);
+    }
+    YahtzyUpdate();
+  }
+
+  // Updates score and dice. Called whenever state changes
+  function YahtzyUpdate() {
+    // Keep track of the number with the highest number of dice
+    // And of the number of dice with that number.
+    var s = 0;
+    var dotsDice = 0;
+    var numDice = 0;
+
+    // Set up totals.
+    var totals = [];
+    for (var i = 0; i < 6; i++) {
+      totals[i] = 0;
+    }
+    // Each index in totals corresponds to the number of dots
+    // The value in each index of totals corresponds to the number of dice
+    // with that number of dots.
+    for (var i = 0; i < diceList.length; i++) {
+      totals [diceList[i].i]++;
+    }
+    // Find the max number of dice, and the dots of the max number
+    // of dice.
+    for (var i = 0; i < totals.length; i++) {
+      if (totals[i] >= numDice) {
+        numDice = totals[i];
+        dotsDice = i + 1;
+      }
+    }
+
+    s = numDice * dotsDice;
+
+    $ ("#score").text ("Score: "+s+" ("+numDice+" dice with "+dotsDice+" dots each)");
+    $ ("#rolls").text (rollsLeft + " rolls left");
+    for (var i = 0; i < 5; i++) {
+      diceList[i].render();
+    }
+  }
+  
+  // End of Yahtzy code -------------------------------------------
+
+// Uses the Map datatype. May not work in outdated browsers.
+// Uses feature of replace where regular expressions ending with g
+// are applied globaly. This may not be a standard feature.
+// Tested in firefox 35.0.1
+
+  function memoize (f) {
+    var map = new Map();
+    // Pull out function name. It will be in m[1]
+    var m = /function([^\(]*)/.exec(f.toString());
+    // If function has a name
+    if (m[1].trim()) {
+      // Replace the name in the declaration with memoizef1,
+      // then replace all other instances of the name (in the body)
+      // with memoizef2. This makes it so that recursive calls (if any) 
+      // in the function redirect to memoizef2.
+      var reg = new RegExp (m[1], 'g');
+      var fcode = f.toString().replace (m[1], " memoizef1 ").replace (reg, " memoizef2 ");
+      // console.log (fcode); // Uncomment to show generated code.
+      // Then evaluate the newly created function
+      eval (fcode);
+    }
+    // Else, function memoizef1 is same as initial function
+    else {
+      var memoizef1 = f;
+    }
+    function memoizef2 (x) {
+      if (map.has (x)) {
+        return map.get (x);
+      }
+      else {
+        // memoizef1 either points to the origin function, or is a function
+        // made by replacing recursive calls with calls to memoizef2.
+        var tmp = memoizef1 (x);
+        map.set (x, tmp);
+        return tmp;
+      }
+    }
+    return memoizef2;
+  }
+
+  </script>
+</body>
+</html>

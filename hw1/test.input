@@ -1,0 +1,25 @@
+:l hw1.hs
+
+let a = ("Herman Melville", "Moby Dick", 1851::Int)
+let b = ("F. Scott Fitzgerald", "The Great Gatsby", 1925::Int)
+let c = ("Coy Humphrey", "This Program", 2015::Int)
+let d = ("Super Dave Osborne", "Super Dave: An Autobiography", 1994::Int)
+
+let books = [a,b,c,d]
+
+let sentence = "The whale is white [1] he dies [2] it's ok [3] he's cool [4]"
+
+citeAuthor "Herman" "Melville" -- Should be Melville Herman
+
+initials "Herman" "Melville" -- Should be M.H.
+
+title a -- Should be Moby Dick
+
+bibliography_rec books
+bibliography_fold books
+
+averageYear books
+
+references sentence -- should be 4
+
+citeText books sentence
